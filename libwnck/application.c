@@ -309,10 +309,11 @@ static void
 get_icons (WnckApplication *app)
 {
   WnckHandle *handle;
-  GdkPixbuf *icon;
-  GdkPixbuf *mini_icon;
+  cairo_surface_t *icon;
+  cairo_surface_t *mini_icon;
   gsize normal_size;
   gsize mini_size;
+  int scaling_factor;
 
   handle = wnck_screen_get_handle (app->priv->screen);
 
@@ -320,6 +321,7 @@ get_icons (WnckApplication *app)
   mini_icon = NULL;
   normal_size = _wnck_handle_get_default_icon_size (handle);
   mini_size = _wnck_handle_get_default_mini_icon_size (handle);
+  scaling_factor = _wnck_get_window_scaling_factor ();
 
   if (_wnck_read_icons (app->priv->screen,
                         app->priv->xwindow,
@@ -327,24 +329,16 @@ get_icons (WnckApplication *app)
                         &icon,
                         normal_size,
                         &mini_icon,
-                        mini_size))
+                        mini_size,
+                        scaling_factor))
     {
       app->priv->need_emit_icon_changed = TRUE;
 
       g_clear_pointer (&app->priv->icon, cairo_surface_destroy);
       g_clear_pointer (&app->priv->mini_icon, cairo_surface_destroy);
 
-      if (icon)
-        {
-          app->priv->icon = gdk_cairo_surface_create_from_pixbuf (icon, 0, NULL);
-          g_clear_object (&icon);
-        }
-
-      if (mini_icon)
-        {
-          app->priv->mini_icon = gdk_cairo_surface_create_from_pixbuf (mini_icon, 0, NULL);
-          g_clear_object (&mini_icon);
-        }
+      app->priv->icon = icon;
+      app->priv->mini_icon = mini_icon;
     }
 
   /* FIXME we should really fall back to using the icon

@@ -44,8 +44,8 @@ struct _WnckIconCache
   IconOrigin origin;
   Pixmap prev_pixmap;
   Pixmap prev_mask;
-  GdkPixbuf *icon;
-  GdkPixbuf *mini_icon;
+  cairo_surface_t *icon;
+  cairo_surface_t *mini_icon;
   int ideal_size;
   int ideal_mini_size;
   guint want_fallback : 1;
@@ -139,49 +139,65 @@ find_best_size (gulong  *data,
     return FALSE;
 }
 
-static void
-argbdata_to_pixdata (gulong *argb_data, int len, guchar **pixdata)
+static cairo_surface_t *
+argbdata_to_surface (gulong *argb_data,
+                     int     w,
+                     int     h,
+                     int     ideal_w,
+                     int     ideal_h,
+                     int     scaling_factor)
 {
-  guchar *p;
-  int i;
+  cairo_surface_t *surface, *icon;
+  cairo_t *cr;
+  int y, x, stride;
+  uint32_t *data;
 
-  *pixdata = g_new (guchar, len * 4);
-  p = *pixdata;
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+  cairo_surface_set_device_scale (surface, (double)scaling_factor, (double)scaling_factor);
+  stride = cairo_image_surface_get_stride (surface) / sizeof (uint32_t);
+  data = (uint32_t *) cairo_image_surface_get_data (surface);
 
   /* One could speed this up a lot. */
-  i = 0;
-  while (i < len)
+  for (y = 0; y < h; y++)
     {
-      guint argb;
-      guint rgba;
-
-      argb = argb_data[i];
-      rgba = (argb << 8) | (argb >> 24);
-
-      *p = rgba >> 24;
-      ++p;
-      *p = (rgba >> 16) & 0xff;
-      ++p;
-      *p = (rgba >> 8) & 0xff;
-      ++p;
-      *p = rgba & 0xff;
-      ++p;
-
-      ++i;
+      for (x = 0; x < w; x++)
+        {
+          uint32_t *p = &data[y * stride + x];
+          gulong *d = &argb_data[y * w + x];
+          *p = *d;
+        }
     }
+
+  cairo_surface_mark_dirty (surface);
+
+  icon = cairo_surface_create_similar_image (surface,
+                                             cairo_image_surface_get_format (surface),
+                                             ideal_w, ideal_h);
+
+  cairo_surface_set_device_scale (icon, (double)scaling_factor, (double)scaling_factor);
+
+  cr = cairo_create (icon);
+  cairo_scale (cr, ideal_w / (double)w, ideal_h / (double)h);
+  cairo_set_source_surface (cr, surface, 0, 0);
+  cairo_paint (cr);
+
+  cairo_set_operator (cr, CAIRO_OPERATOR_IN);
+  cairo_paint (cr);
+
+  cairo_destroy (cr);
+  cairo_surface_destroy (surface);
+
+  return icon;
 }
 
 static gboolean
-read_rgb_icon (Screen  *screen,
-               Window   xwindow,
-               int      ideal_size,
-               int      ideal_mini_size,
-               int     *width,
-               int     *height,
-               guchar **pixdata,
-               int     *mini_width,
-               int     *mini_height,
-               guchar **mini_pixdata)
+read_rgb_icon (Screen           *screen,
+               Window            xwindow,
+               int               ideal_size,
+               int               ideal_mini_size,
+               cairo_surface_t **iconp,
+               cairo_surface_t **mini_iconp,
+               int               scaling_factor)
 {
   Display *display;
   Atom type;
@@ -219,7 +235,9 @@ read_rgb_icon (Screen  *screen,
       return FALSE;
     }
 
-  if (!find_best_size (data, nitems, ideal_size, &w, &h, &best))
+  if (!find_best_size (data, nitems,
+                       ideal_size,
+                       &w, &h, &best))
     {
       XFree (data);
       return FALSE;
@@ -233,14 +251,8 @@ read_rgb_icon (Screen  *screen,
       return FALSE;
     }
 
-  *width = w;
-  *height = h;
-
-  *mini_width = mini_w;
-  *mini_height = mini_h;
-
-  argbdata_to_pixdata (best, w * h, pixdata);
-  argbdata_to_pixdata (best_mini, mini_w * mini_h, mini_pixdata);
+  *iconp = argbdata_to_surface (best, w, h, ideal_size, ideal_size, scaling_factor);
+  *mini_iconp = argbdata_to_surface (best_mini, mini_w, mini_h, ideal_mini_size, ideal_mini_size, scaling_factor);
 
   XFree (data);
 
@@ -248,27 +260,27 @@ read_rgb_icon (Screen  *screen,
 }
 
 static gboolean
-try_pixmap_and_mask (Screen     *screen,
-                     Pixmap      src_pixmap,
-                     Pixmap      src_mask,
-                     GdkPixbuf **iconp,
-                     int         ideal_size,
-                     GdkPixbuf **mini_iconp,
-                     int         ideal_mini_size)
+try_pixmap_and_mask (Screen           *screen,
+                     Pixmap            src_pixmap,
+                     Pixmap            src_mask,
+                     cairo_surface_t **iconp,
+                     int               ideal_size,
+                     cairo_surface_t **mini_iconp,
+                     int               ideal_mini_size,
+                     int               scaling_factor)
 {
   cairo_surface_t *surface, *mask_surface, *image;
   GdkDisplay *gdk_display;
-  GdkPixbuf *unscaled;
   int width, height;
   cairo_t *cr;
 
   if (src_pixmap == None)
     return FALSE;
 
-  surface = _wnck_cairo_surface_get_from_pixmap (screen, src_pixmap);
+  surface = _wnck_cairo_surface_get_from_pixmap (screen, src_pixmap, scaling_factor);
 
   if (surface && src_mask != None)
-    mask_surface = _wnck_cairo_surface_get_from_pixmap (screen, src_mask);
+    mask_surface = _wnck_cairo_surface_get_from_pixmap (screen, src_mask, scaling_factor);
   else
     mask_surface = NULL;
 
@@ -324,26 +336,41 @@ try_pixmap_and_mask (Screen     *screen,
       return FALSE;
     }
 
-  unscaled = gdk_pixbuf_get_from_surface (image,
-                                          0, 0,
-                                          width, height);
-
-  cairo_surface_destroy (image);
-
-  if (unscaled)
+  if (image)
     {
-      *iconp =
-        gdk_pixbuf_scale_simple (unscaled,
-                                 ideal_size,
-                                 ideal_size,
-                                 GDK_INTERP_BILINEAR);
-      *mini_iconp =
-        gdk_pixbuf_scale_simple (unscaled,
-                                 ideal_mini_size,
-                                 ideal_mini_size,
-                                 GDK_INTERP_BILINEAR);
+      int image_w, image_h;
 
-      g_object_unref (G_OBJECT (unscaled));
+      image_w = cairo_image_surface_get_width (image);
+      image_h = cairo_image_surface_get_height (image);
+
+      *iconp = cairo_surface_create_similar (image,
+                                             cairo_surface_get_content (image),
+                                             ideal_size,
+                                             ideal_size);
+
+      cairo_surface_set_device_scale (*iconp, (double)scaling_factor, (double)scaling_factor);
+
+      cr = cairo_create (*iconp);
+      cairo_scale (cr, ideal_size / (double)image_w, ideal_size / (double)image_h);
+      cairo_set_source_surface (cr, image, 0, 0);
+      cairo_paint (cr);
+      cairo_destroy (cr);
+
+      *mini_iconp = cairo_surface_create_similar (image,
+                                                  cairo_surface_get_content (image),
+                                                  ideal_mini_size,
+                                                  ideal_mini_size);
+
+      cairo_surface_set_device_scale (*mini_iconp, (double)scaling_factor, (double)scaling_factor);
+
+      cr = cairo_create (*mini_iconp);
+      cairo_scale (cr, ideal_mini_size / (double)image_w, ideal_mini_size / (double)image_h);
+      cairo_set_source_surface (cr, image, 0, 0);
+      cairo_paint (cr);
+      cairo_destroy (cr);
+
+      cairo_surface_destroy (image);
+
       return TRUE;
     }
   else
@@ -354,13 +381,8 @@ static void
 clear_icon_cache (WnckIconCache *icon_cache,
                   gboolean       dirty_all)
 {
-  if (icon_cache->icon)
-    g_object_unref (G_OBJECT (icon_cache->icon));
-  icon_cache->icon = NULL;
-
-  if (icon_cache->mini_icon)
-    g_object_unref (G_OBJECT (icon_cache->mini_icon));
-  icon_cache->mini_icon = NULL;
+  g_clear_pointer (&icon_cache->icon, cairo_surface_destroy);
+  g_clear_pointer (&icon_cache->mini_icon, cairo_surface_destroy);
 
   icon_cache->origin = USING_NO_ICON;
 
@@ -372,87 +394,24 @@ clear_icon_cache (WnckIconCache *icon_cache,
 }
 
 static void
-replace_cache (WnckIconCache *icon_cache,
-               IconOrigin     origin,
-               GdkPixbuf     *new_icon,
-               GdkPixbuf     *new_mini_icon)
+replace_cache (WnckIconCache   *icon_cache,
+               IconOrigin       origin,
+               cairo_surface_t *new_icon,
+               cairo_surface_t *new_mini_icon)
 {
   clear_icon_cache (icon_cache, FALSE);
 
   icon_cache->origin = origin;
 
   if (new_icon)
-    g_object_ref (G_OBJECT (new_icon));
+    cairo_surface_reference (new_icon);
 
   icon_cache->icon = new_icon;
 
   if (new_mini_icon)
-    g_object_ref (G_OBJECT (new_mini_icon));
+    cairo_surface_reference (new_mini_icon);
 
   icon_cache->mini_icon = new_mini_icon;
-}
-
-static void
-free_pixels (guchar   *pixels,
-             gpointer  data)
-{
-  g_free (pixels);
-}
-
-static GdkPixbuf*
-scaled_from_pixdata (guchar *pixdata,
-                     int     w,
-                     int     h,
-                     int     new_w,
-                     int     new_h)
-{
-  GdkPixbuf *src;
-  GdkPixbuf *dest;
-
-  src = gdk_pixbuf_new_from_data (pixdata,
-                                  GDK_COLORSPACE_RGB,
-                                  TRUE,
-                                  8,
-                                  w, h, w * 4,
-                                  free_pixels,
-                                  NULL);
-
-  if (src == NULL)
-    return NULL;
-
-  if (w != h)
-    {
-      GdkPixbuf *tmp;
-      int size;
-
-      size = MAX (w, h);
-
-      tmp = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, size, size);
-
-      if (tmp != NULL)
-        {
-          gdk_pixbuf_fill (tmp, 0);
-          gdk_pixbuf_copy_area (src, 0, 0, w, h,
-                                tmp,
-                                (size - w) / 2, (size - h) / 2);
-
-          g_object_unref (src);
-          src = tmp;
-        }
-    }
-
-  if (w != new_w || h != new_h)
-    {
-      dest = gdk_pixbuf_scale_simple (src, new_w, new_h, GDK_INTERP_BILINEAR);
-
-      g_object_unref (G_OBJECT (src));
-    }
-  else
-    {
-      dest = src;
-    }
-
-  return dest;
 }
 
 WnckIconCache*
@@ -528,22 +487,17 @@ _wnck_icon_cache_get_is_fallback (WnckIconCache *icon_cache)
 }
 
 gboolean
-_wnck_read_icons (WnckScreen     *screen,
-                  Window          xwindow,
-                  WnckIconCache  *icon_cache,
-                  GdkPixbuf     **iconp,
-                  int             ideal_size,
-                  GdkPixbuf     **mini_iconp,
-                  int             ideal_mini_size)
+_wnck_read_icons (WnckScreen       *screen,
+                  Window            xwindow,
+                  WnckIconCache    *icon_cache,
+                  cairo_surface_t **iconp,
+                  int               ideal_size,
+                  cairo_surface_t **mini_iconp,
+                  int               ideal_mini_size,
+                  int               scaling_factor)
 {
   Screen *xscreen;
   Display *display;
-  guchar *pixdata;
-  int w, h;
-  guchar *mini_pixdata;
-  int mini_w, mini_h;
-  Pixmap pixmap;
-  Pixmap mask;
   XWMHints *hints;
 
   /* Return value is whether the icon changed */
@@ -556,6 +510,9 @@ _wnck_read_icons (WnckScreen     *screen,
   *iconp = NULL;
   *mini_iconp = NULL;
 
+  ideal_size *= scaling_factor;
+  ideal_mini_size *= scaling_factor;
+
   if (ideal_size != icon_cache->ideal_size ||
       ideal_mini_size != icon_cache->ideal_mini_size)
     clear_icon_cache (icon_cache, TRUE);
@@ -565,8 +522,6 @@ _wnck_read_icons (WnckScreen     *screen,
 
   if (!_wnck_icon_cache_get_icon_invalidated (icon_cache))
     return FALSE; /* we have no new info to use */
-
-  pixdata = NULL;
 
   /* Our algorithm here assumes that we can't have for example origin
    * < USING_NET_WM_ICON and icon_cache->net_wm_icon_dirty == FALSE
@@ -579,21 +534,15 @@ _wnck_read_icons (WnckScreen     *screen,
 
   if (icon_cache->origin <= USING_NET_WM_ICON &&
       icon_cache->net_wm_icon_dirty)
-
     {
       icon_cache->net_wm_icon_dirty = FALSE;
 
       if (read_rgb_icon (xscreen, xwindow,
                          ideal_size,
                          ideal_mini_size,
-                         &w, &h, &pixdata,
-                         &mini_w, &mini_h, &mini_pixdata))
+                         iconp, mini_iconp,
+                         scaling_factor))
         {
-          *iconp = scaled_from_pixdata (pixdata, w, h, ideal_size, ideal_size);
-
-          *mini_iconp = scaled_from_pixdata (mini_pixdata, mini_w, mini_h,
-                                             ideal_mini_size, ideal_mini_size);
-
           replace_cache (icon_cache, USING_NET_WM_ICON,
                          *iconp, *mini_iconp);
 
@@ -604,6 +553,9 @@ _wnck_read_icons (WnckScreen     *screen,
   if (icon_cache->origin <= USING_WM_HINTS &&
       icon_cache->wm_hints_dirty)
     {
+      Pixmap pixmap;
+      Pixmap mask;
+
       icon_cache->wm_hints_dirty = FALSE;
 
       _wnck_error_trap_push (display);
@@ -632,7 +584,8 @@ _wnck_read_icons (WnckScreen     *screen,
         {
           if (try_pixmap_and_mask (xscreen, pixmap, mask,
                                    iconp, ideal_size,
-                                   mini_iconp, ideal_mini_size))
+                                   mini_iconp, ideal_mini_size,
+                                   scaling_factor))
             {
               icon_cache->prev_pixmap = pixmap;
               icon_cache->prev_mask = mask;

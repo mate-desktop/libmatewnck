@@ -3962,15 +3962,8 @@ wnck_task_get_icon (WnckTask *task)
 
       if (surface == NULL)
         {
-          GdkPixbuf *pixbuf;
           _wnck_get_fallback_icons (NULL, 0,
-                                    &pixbuf, mini_icon_size);
-
-          if (pixbuf != NULL)
-            {
-              surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, 0, NULL);
-              g_object_unref (pixbuf);
-            }
+                                    &surface, mini_icon_size);
         }
 #endif
       break;

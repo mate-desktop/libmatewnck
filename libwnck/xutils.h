@@ -156,10 +156,10 @@ void _wnck_keyboard_size (WnckScreen *screen,
 void _wnck_toggle_showing_desktop (Screen  *screen,
                                    gboolean show);
 
-void _wnck_get_fallback_icons (GdkPixbuf **iconp,
-                               int         ideal_size,
-                               GdkPixbuf **mini_iconp,
-                               int         ideal_mini_size);
+void _wnck_get_fallback_icons (cairo_surface_t **iconp,
+                               int               ideal_size,
+                               cairo_surface_t **mini_iconp,
+                               int               ideal_mini_size);
 
 void _wnck_get_window_geometry (Screen *screen,
 				Window  xwindow,
@@ -192,7 +192,8 @@ void _wnck_set_desktop_layout (Screen *xscreen,
                                int     columns);
 
 cairo_surface_t *_wnck_cairo_surface_get_from_pixmap (Screen *screen,
-                                                      Pixmap  xpixmap);
+                                                      Pixmap  xpixmap,
+                                                      int     scaling_factor);
 
 GdkPixbuf* _wnck_gdk_pixbuf_get_from_pixmap (Screen *screen,
                                              Pixmap  xpixmap);

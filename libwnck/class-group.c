@@ -438,25 +438,13 @@ set_icon (WnckClassGroup *class_group)
   if (!icon || !mini_icon)
     {
       WnckHandle *handle;
-      GdkPixbuf *icon_pixbuf, *mini_icon_pixbuf;
 
       handle = wnck_screen_get_handle (class_group->priv->screen);
 
-      _wnck_get_fallback_icons (&icon_pixbuf,
+      _wnck_get_fallback_icons (&icon,
                                 _wnck_handle_get_default_icon_size (handle),
-                                &mini_icon_pixbuf,
+                                &mini_icon,
                                 _wnck_handle_get_default_mini_icon_size (handle));
-      if (icon_pixbuf)
-        {
-          icon = gdk_cairo_surface_create_from_pixbuf (icon_pixbuf, 0, NULL);
-          g_clear_object (&icon_pixbuf);
-        }
-
-      if (mini_icon_pixbuf)
-        {
-          mini_icon = gdk_cairo_surface_create_from_pixbuf (mini_icon_pixbuf, 0, NULL);
-          g_clear_object (&mini_icon_pixbuf);
-        }
 
       icons_reffed = TRUE;
     }

@@ -2113,10 +2113,11 @@ static void
 get_icons (WnckWindow *window)
 {
   WnckHandle *handle;
-  GdkPixbuf *icon;
-  GdkPixbuf *mini_icon;
+  cairo_surface_t *icon;
+  cairo_surface_t *mini_icon;
   gsize normal_size;
   gsize mini_size;
+  int scaling_factor;
 
   handle = wnck_screen_get_handle (window->priv->screen);
 
@@ -2124,6 +2125,7 @@ get_icons (WnckWindow *window)
   mini_icon = NULL;
   normal_size = _wnck_handle_get_default_icon_size (handle);
   mini_size = _wnck_handle_get_default_mini_icon_size (handle);
+  scaling_factor = _wnck_get_window_scaling_factor ();
 
   if (_wnck_read_icons (window->priv->screen,
                         window->priv->xwindow,
@@ -2131,24 +2133,16 @@ get_icons (WnckWindow *window)
                         &icon,
                         normal_size,
                         &mini_icon,
-                        mini_size))
+                        mini_size,
+                        scaling_factor))
     {
       window->priv->need_emit_icon_changed = TRUE;
 
       g_clear_pointer (&window->priv->icon, cairo_surface_destroy);
       g_clear_pointer (&window->priv->mini_icon, cairo_surface_destroy);
 
-      if (icon)
-        {
-          window->priv->icon = gdk_cairo_surface_create_from_pixbuf (icon, 0, NULL);
-          g_clear_object (&icon);
-        }
-
-      if (mini_icon)
-        {
-          window->priv->mini_icon = gdk_cairo_surface_create_from_pixbuf (mini_icon, 0, NULL);
-          g_clear_object (&mini_icon);
-        }
+      window->priv->icon = icon;
+      window->priv->mini_icon = mini_icon;
     }
 
   g_assert ((window->priv->icon && window->priv->mini_icon) ||
