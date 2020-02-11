@@ -689,6 +689,8 @@ wnck_class_group_get_name (WnckClassGroup *class_group)
  * the icon around.
  *
  * Since: 2.2
+ *
+ * Deprecated:41.0: Use wnck_class_group_get_icon_surface() instead.
  **/
 GdkPixbuf *
 wnck_class_group_get_icon (WnckClassGroup *class_group)
@@ -741,6 +743,8 @@ wnck_class_group_get_icon (WnckClassGroup *class_group)
  * to keep the mini-icon around.
  *
  * Since: 2.2
+ *
+ * Deprecated:41.0: Use wnck_class_group_get_mini_icon_surface() instead.
  **/
 GdkPixbuf *
 wnck_class_group_get_mini_icon (WnckClassGroup *class_group)

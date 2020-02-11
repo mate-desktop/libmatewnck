@@ -523,7 +523,7 @@ icon_set_func (GtkTreeViewColumn *tree_column,
     return;
   
   g_object_set (GTK_CELL_RENDERER (cell),
-                "pixbuf", wnck_window_get_mini_icon (window),
+                "surface", wnck_window_get_mini_icon_surface (window),
                 NULL);
 }
 

@@ -21,6 +21,8 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#undef WNCK_DISABLE_DEPRECATED
+
 #include <config.h>
 
 #include <glib/gi18n-lib.h>
@@ -2172,6 +2174,8 @@ _wnck_window_load_icons (WnckWindow *window)
  * Return value: (transfer none): the icon for @window. The caller should
  * reference the returned <classname>GdkPixbuf</classname> if it needs to keep
  * the icon around.
+ *
+ * Deprecated:41.0: Use wnck_window_get_icon_surface() instead.
  **/
 GdkPixbuf*
 wnck_window_get_icon (WnckWindow *window)
@@ -2224,6 +2228,8 @@ wnck_window_get_icon (WnckWindow *window)
  * Return value: (transfer none): the mini-icon for @window. The caller should
  * reference the returned <classname>GdkPixbuf</classname> if it needs to keep
  * the icon around.
+ *
+ * Deprecated:41.0: Use wnck_window_get_mini_icon_surface() instead.
  **/
 GdkPixbuf*
 wnck_window_get_mini_icon (WnckWindow *window)

@@ -81,8 +81,12 @@ const char * wnck_class_group_get_id (WnckClassGroup *class_group);
 
 const char * wnck_class_group_get_name (WnckClassGroup *class_group);
 
+G_DEPRECATED_FOR(wnck_class_group_get_icon_surface)
 GdkPixbuf *wnck_class_group_get_icon (WnckClassGroup *class_group);
+
+G_DEPRECATED_FOR(wnck_class_group_get_mini_icon_surface)
 GdkPixbuf *wnck_class_group_get_mini_icon (WnckClassGroup *class_group);
+
 cairo_surface_t *wnck_class_group_get_icon_surface (WnckClassGroup *class_group);
 cairo_surface_t *wnck_class_group_get_mini_icon_surface (WnckClassGroup *class_group);
 

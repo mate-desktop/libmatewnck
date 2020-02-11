@@ -91,10 +91,16 @@ int    wnck_application_get_n_windows (WnckApplication *app);
 const char* wnck_application_get_name      (WnckApplication *app);
 const char* wnck_application_get_icon_name (WnckApplication *app);
 int         wnck_application_get_pid       (WnckApplication *app);
+
+G_DEPRECATED_FOR(wnck_application_get_icon_surface)
 GdkPixbuf*  wnck_application_get_icon      (WnckApplication *app);
+
+G_DEPRECATED_FOR(wnck_application_get_mini_icon_surface)
 GdkPixbuf*  wnck_application_get_mini_icon (WnckApplication *app);
+
 cairo_surface_t* wnck_application_get_icon_surface (WnckApplication *app);
 cairo_surface_t* wnck_application_get_mini_icon_surface (WnckApplication *app);
+
 gboolean    wnck_application_get_icon_is_fallback (WnckApplication *app);
 const char* wnck_application_get_startup_id (WnckApplication *app);
 

@@ -395,6 +395,8 @@ find_icon_window (WnckApplication *app)
  * Return value: (transfer none): the icon for @app. The caller should
  * reference the returned <classname>GdkPixbuf</classname> if it needs to keep
  * the icon around.
+ *
+ * Deprecated:41.0: Use wnck_application_get_icon_surface() instead.
  **/
 GdkPixbuf*
 wnck_application_get_icon (WnckApplication *app)
@@ -434,10 +436,12 @@ wnck_application_get_icon (WnckApplication *app)
     }
   else
     {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       WnckWindow *w = find_icon_window (app);
       if (w)
         return wnck_window_get_icon (w);
       else
+G_GNUC_END_IGNORE_DEPRECATIONS
         return NULL;
     }
 }
@@ -453,6 +457,8 @@ wnck_application_get_icon (WnckApplication *app)
  * Return value: (transfer none): the mini-icon for @app. The caller should
  * reference the returned <classname>GdkPixbuf</classname> if it needs to keep
  * the mini-icon around.
+ *
+ * Deprecated:41.0: Use wnck_application_get_mini_icon_surface() instead.
  **/
 GdkPixbuf*
 wnck_application_get_mini_icon (WnckApplication *app)
@@ -492,10 +498,12 @@ wnck_application_get_mini_icon (WnckApplication *app)
     }
   else
     {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       WnckWindow *w = find_icon_window (app);
       if (w)
         return wnck_window_get_mini_icon (w);
       else
+G_GNUC_END_IGNORE_DEPRECATIONS
         return NULL;
     }
 }
