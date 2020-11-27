@@ -62,8 +62,8 @@ struct _WnckApplicationPrivate
 
   WnckWindow *name_window;    /* window we are using name of */
 
-  GdkPixbuf *icon;
-  GdkPixbuf *mini_icon;
+  cairo_surface_t *icon;
+  cairo_surface_t *mini_icon;
 
   WnckIconCache *icon_cache;
 
@@ -159,13 +159,8 @@ wnck_application_finalize (GObject *object)
   g_free (application->priv->name);
   application->priv->name = NULL;
 
-  if (application->priv->icon)
-    g_object_unref (G_OBJECT (application->priv->icon));
-  application->priv->icon = NULL;
-
-  if (application->priv->mini_icon)
-    g_object_unref (G_OBJECT (application->priv->mini_icon));
-  application->priv->mini_icon = NULL;
+  g_clear_pointer (&application->priv->icon, cairo_surface_destroy);
+  g_clear_pointer (&application->priv->mini_icon, cairo_surface_destroy);
 
   _wnck_icon_cache_free (application->priv->icon_cache);
   application->priv->icon_cache = NULL;
@@ -336,14 +331,20 @@ get_icons (WnckApplication *app)
     {
       app->priv->need_emit_icon_changed = TRUE;
 
-      if (app->priv->icon)
-        g_object_unref (G_OBJECT (app->priv->icon));
+      g_clear_pointer (&app->priv->icon, cairo_surface_destroy);
+      g_clear_pointer (&app->priv->mini_icon, cairo_surface_destroy);
 
-      if (app->priv->mini_icon)
-        g_object_unref (G_OBJECT (app->priv->mini_icon));
+      if (icon)
+        {
+          app->priv->icon = gdk_cairo_surface_create_from_pixbuf (icon, 0, NULL);
+          g_clear_object (&icon);
+        }
 
-      app->priv->icon = icon;
-      app->priv->mini_icon = mini_icon;
+      if (mini_icon)
+        {
+          app->priv->mini_icon = gdk_cairo_surface_create_from_pixbuf (mini_icon, 0, NULL);
+          g_clear_object (&mini_icon);
+        }
     }
 
   /* FIXME we should really fall back to using the icon
@@ -404,12 +405,39 @@ find_icon_window (WnckApplication *app)
 GdkPixbuf*
 wnck_application_get_icon (WnckApplication *app)
 {
+  static const cairo_user_data_key_t app_icon_pixbuf_key;
+
   g_return_val_if_fail (WNCK_IS_APPLICATION (app), NULL);
 
   _wnck_application_load_icons (app);
 
   if (app->priv->icon)
-    return app->priv->icon;
+    {
+      GdkPixbuf *pixbuf;
+
+      pixbuf = cairo_surface_get_user_data (app->priv->icon, &app_icon_pixbuf_key);
+
+      if (pixbuf == NULL)
+        {
+          int scaling_factor;
+
+          pixbuf = gdk_pixbuf_get_from_surface (app->priv->icon,
+                                                0,
+                                                0,
+                                                cairo_image_surface_get_width (app->priv->icon),
+                                                cairo_image_surface_get_height (app->priv->icon));
+
+          scaling_factor = _wnck_get_window_scaling_factor ();
+          pixbuf = gdk_pixbuf_scale_simple (pixbuf,
+                                            gdk_pixbuf_get_width (pixbuf) / scaling_factor,
+                                            gdk_pixbuf_get_height (pixbuf) / scaling_factor,
+                                            GDK_INTERP_BILINEAR);
+
+          cairo_surface_set_user_data (app->priv->icon, &app_icon_pixbuf_key, pixbuf, g_object_unref);
+        }
+
+      return pixbuf;
+    }
   else
     {
       WnckWindow *w = find_icon_window (app);
@@ -435,17 +463,106 @@ wnck_application_get_icon (WnckApplication *app)
 GdkPixbuf*
 wnck_application_get_mini_icon (WnckApplication *app)
 {
+  static const cairo_user_data_key_t app_mini_icon_pixbuf_key;
+
   g_return_val_if_fail (WNCK_IS_APPLICATION (app), NULL);
 
   _wnck_application_load_icons (app);
 
   if (app->priv->mini_icon)
-    return app->priv->mini_icon;
+    {
+      GdkPixbuf *pixbuf;
+
+      pixbuf = cairo_surface_get_user_data (app->priv->mini_icon, &app_mini_icon_pixbuf_key);
+
+      if (pixbuf == NULL)
+        {
+          int scaling_factor;
+
+          pixbuf = gdk_pixbuf_get_from_surface (app->priv->mini_icon,
+                                                0,
+                                                0,
+                                                cairo_image_surface_get_width (app->priv->mini_icon),
+                                                cairo_image_surface_get_height (app->priv->mini_icon));
+
+          scaling_factor = _wnck_get_window_scaling_factor ();
+          pixbuf = gdk_pixbuf_scale_simple (pixbuf,
+                                            gdk_pixbuf_get_width (pixbuf) / scaling_factor,
+                                            gdk_pixbuf_get_height (pixbuf) / scaling_factor,
+                                            GDK_INTERP_BILINEAR);
+
+          cairo_surface_set_user_data (app->priv->mini_icon, &app_mini_icon_pixbuf_key, pixbuf, g_object_unref);
+        }
+
+      return pixbuf;
+    }
   else
     {
       WnckWindow *w = find_icon_window (app);
       if (w)
         return wnck_window_get_mini_icon (w);
+      else
+        return NULL;
+    }
+}
+
+/**
+ * wnck_application_get_icon_surface:
+ * @app: a #WnckApplication.
+ *
+ * Gets the icon-surface to be used for @app. If no icon-surfaceis set for @app,
+ * a suboptimal heuristic is used to find an appropriate icon. If no icon-surface
+ * was found, a fallback icon-surface is used.
+ *
+ * Return value: (transfer full): a reference to the icon-surface for @app. The
+ * caller should unreference the <classname>cairo_surface_t</classname> once done
+ * with it.
+ **/
+cairo_surface_t*
+wnck_application_get_icon_surface (WnckApplication *app)
+{
+  g_return_val_if_fail (WNCK_IS_APPLICATION (app), NULL);
+
+  _wnck_application_load_icons (app);
+
+  if (app->priv->icon)
+    return cairo_surface_reference (app->priv->icon);
+  else
+    {
+      WnckWindow *w = find_icon_window (app);
+      if (w)
+        return wnck_window_get_icon_surface (w);
+      else
+        return NULL;
+    }
+}
+
+/**
+ * wnck_application_get_mini_icon_surface:
+ * @app: a #WnckApplication.
+ *
+ * Gets the mini-icon-surface to be used for @app. If no mini-icon-surfaceis set
+ * for @app, a suboptimal heuristic is used to find an appropriate icon. If no
+ * mini-icon-surface was found, a fallback mini-icon-surface is used.
+ *
+ * Return value: (transfer full): a reference to the mini-icon-surface for @app.
+ * The caller should unreference the <classname>cairo_surface_t</classname> once
+ * done with it.
+ **/
+cairo_surface_t*
+wnck_application_get_mini_icon_surface (WnckApplication *app)
+{
+  g_return_val_if_fail (WNCK_IS_APPLICATION (app), NULL);
+
+  _wnck_application_load_icons (app);
+
+  if (app->priv->mini_icon)
+    return cairo_surface_reference (app->priv->mini_icon);
+  else
+    {
+      WnckWindow *w = find_icon_window (app);
+      if (w)
+        return wnck_window_get_mini_icon_surface (w);
       else
         return NULL;
     }
