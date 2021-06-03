@@ -235,6 +235,10 @@ struct _WnckTasklistPrivate
   void *icon_loader_data;
   GDestroyNotify free_icon_loader_data;
 
+  WnckLoadSurfaceFunction surface_loader;
+  void *surface_loader_data;
+  GDestroyNotify free_surface_loader_data;
+
 #ifdef HAVE_STARTUP_NOTIFICATION
   SnDisplay *sn_display;
   SnMonitorContext *sn_context;
@@ -1281,6 +1285,11 @@ wnck_tasklist_finalize (GObject *object)
   tasklist->priv->free_icon_loader_data = NULL;
   tasklist->priv->icon_loader_data = NULL;
 
+  if (tasklist->priv->free_surface_loader_data != NULL)
+    (* tasklist->priv->free_surface_loader_data) (tasklist->priv->surface_loader_data);
+  tasklist->priv->free_surface_loader_data = NULL;
+  tasklist->priv->surface_loader_data = NULL;
+
   g_clear_object (&tasklist->priv->handle);
 
   G_OBJECT_CLASS (wnck_tasklist_parent_class)->finalize (object);
@@ -1519,6 +1528,31 @@ wnck_tasklist_set_icon_loader (WnckTasklist         *tasklist,
   tasklist->priv->icon_loader = load_icon_func;
   tasklist->priv->icon_loader_data = data;
   tasklist->priv->free_icon_loader_data = free_data_func;
+}
+
+/**
+ * wnck_tasklist_set_surface_loader:
+ * @tasklist: a #WnckTasklist
+ * @load_surface_func: icon loader function
+ * @data: data for icon loader function
+ * @free_data_func: function to free the data
+ *
+ * Sets a function to be used for loading cairo surface icons.
+ **/
+void
+wnck_tasklist_set_surface_loader (WnckTasklist           *tasklist,
+                                  WnckLoadSurfaceFunction load_surface_func,
+                                  void                   *data,
+                                  GDestroyNotify          free_data_func)
+{
+  g_return_if_fail (WNCK_IS_TASKLIST (tasklist));
+
+  if (tasklist->priv->free_surface_loader_data != NULL)
+    (* tasklist->priv->free_surface_loader_data) (tasklist->priv->surface_loader_data);
+
+  tasklist->priv->surface_loader = load_surface_func;
+  tasklist->priv->surface_loader_data = data;
+  tasklist->priv->free_surface_loader_data = free_data_func;
 }
 
 static void
@@ -3933,7 +3967,21 @@ wnck_task_get_icon (WnckTask *task)
 
     case WNCK_TASK_STARTUP_SEQUENCE:
 #ifdef HAVE_STARTUP_NOTIFICATION
-      if (task->tasklist->priv->icon_loader != NULL)
+      if (task->tasklist->priv->surface_loader != NULL)
+        {
+          const char *icon;
+
+          icon = sn_startup_sequence_get_icon_name (task->startup_sequence);
+          if (icon != NULL)
+            {
+              surface =  (* task->tasklist->priv->surface_loader) (icon,
+                                                                  mini_icon_size,
+                                                                  0,
+                                                                  task->tasklist->priv->surface_loader_data);
+
+            }
+        }
+      else if (task->tasklist->priv->icon_loader != NULL)
         {
           const char *icon;
 
