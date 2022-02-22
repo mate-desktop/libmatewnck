@@ -2,64 +2,36 @@ gnome = import('gnome')
 
 libwnck_includedir = join_paths(PACKAGE_NAME, meson.project_name())
 
-version_data = configuration_data()
-version_array = meson.project_version().split('.')
-
-major_version = version_array[0].to_int()
-minor_version = version_array[1]
-micro_version = (version_array.length() == 3) ? version_array[2].to_int() : 0
-
-if minor_version == 'alpha'
-  minor_version = 97
-elif minor_version == 'beta'
-  minor_version = 98
-elif minor_version == 'rc'
-  minor_version = 99
-else
-  # Ensure that only numbers are expected in this case
-  minor_version = minor_version.to_int()
-endif
-
-if minor_version >= 97
-  major_version = major_version - 1
-endif
-
-version_data.set('WNCK_MAJOR_VERSION', major_version)
-version_data.set('WNCK_MINOR_VERSION', minor_version)
-version_data.set('WNCK_MICRO_VERSION', micro_version)
-
 headers = [
-  'libwnck.h',
-  'application.h',
-  'class-group.h',
-  'screen.h',
-  'util.h',
-  'window.h',
-  'workspace.h',
+  'pager.h',
+  'selector.h',
+  'tasklist.h',
+  'window-action-menu.h',
 ]
 
-headers += configure_file(
-  input: 'version.h.in',
-  output: 'version.h',
-  configuration: version_data)
-
 sources = [
-  'application.c',
-  'class-group.c',
-  'screen.c',
+  'pager.c',
+  'selector.c',
+  'tasklist.c',
   'util.c',
-  'window.c',
-  'wnck-handle-private.h',
-  'wnck-handle.c',
-  'wnck-icon-cache-private.h',
-  'wnck-icon-cache.c',
-  'wnck-resource-usage-private.h',
-  'wnck-resource-usage.c',
-  'workspace.c',
+  'window-action-menu.c',
+  'wnck-image-menu-item-private.h',
+  'wnck-image-menu-item.c',
   'xutils.c',
 ]
 
-enum_types = gnome.mkenums_simple('wnck-enum-types',
+a11y_sources = [
+  'pager-accessible.c',
+  'pager-accessible.h',
+  'pager-accessible-factory.c',
+  'pager-accessible-factory.h',
+  'workspace-accessible.c',
+  'workspace-accessible.h',
+  'workspace-accessible-factory.c',
+  'workspace-accessible-factory.h',
+]
+
+enum_types = gnome.mkenums_simple('wnck-widgets-enum-types',
   sources : headers,
   install_header: true,
   install_dir: join_paths(includedir, libwnck_includedir)
@@ -91,7 +63,8 @@ if get_option('deprecation_flags')
   endforeach
 endif
 
-libwnck_dep = declare_dependency(
+libwnck_widgets_dep = declare_dependency(
+  link_with: libwnck_lib,
   include_directories: default_includes,
   dependencies: LIBWNCK_DEPS,
   compile_args: libwnck_cflags,
@@ -99,9 +72,12 @@ libwnck_dep = declare_dependency(
   link_args: libwnck_ldflags,
 )
 
-libwnck_lib = shared_library(LIBNAME,
-  dependencies: libwnck_dep,
-  sources: sources + enum_types + resources,
+MODULE_NAME_W = meson.project_name() + '-widgets-@0@'.format(LIBWNCK_CURRENT)
+LIBNAME_W = MODULE_NAME_W.split('lib')[1]
+
+libwnck_widgets_lib = shared_library(LIBNAME_W,
+  dependencies: libwnck_widgets_dep,
+  sources: sources + a11y_sources + enum_types + resources,
   version: '@0@.@1@.@2@'.format(LIBWNCK_SOVERSION, LIBWNCK_CURRENT, LIBWNCK_REVISION),
   soversion: LIBWNCK_SOVERSION,
   link_depends: mapfile,
@@ -111,12 +87,12 @@ libwnck_lib = shared_library(LIBNAME,
 introspection = get_option('introspection')
 if not introspection.disabled()
   find_program('g-ir-scanner', required: introspection.enabled())
-  gnome.generate_gir(libwnck_lib,
+  gnome.generate_gir(libwnck_widgets_lib,
     sources: headers + sources + enum_types,
     namespace: 'Wnck',
     nsversion: MODULE_VERSION,
     export_packages: PACKAGE_NAME,
-    includes: ['GObject-2.0', 'GdkPixbuf-2.0'],
+    includes: ['GObject-2.0', 'GdkPixbuf-2.0', 'Gtk-3.0'],
     extra_args: '--c-include=@0@/@0@.h'.format(meson.project_name()),
     install: true
   )
@@ -124,27 +100,17 @@ endif
 
 install_headers(headers, subdir: libwnck_includedir)
 
-progs = [
-  'wnckprop',
-]
-
-if not get_option('deprecation_flags')
-  progs += 'wnck-urgency-monitor'
-endif
-
 test_progs = [
-  'test-wnck',
-  'test-urgent',
-  'test-shutdown',
+  'test-tasklist',
+  'test-selector',
+  'test-pager',
 ]
 
-foreach prog: progs + test_progs
+foreach prog: test_progs
   executable(prog, [prog + '.c'],
     include_directories: default_includes,
-    dependencies: libwnck_dep,
-    link_with: libwnck_lib,
-    install: progs.contains(prog) and get_option('install_tools'),
+    dependencies: libwnck_widgets_dep,
+    link_with: libwnck_widgets_lib,
+    install: false,
     install_dir: bindir)
 endforeach
-
-subdir('widgets')

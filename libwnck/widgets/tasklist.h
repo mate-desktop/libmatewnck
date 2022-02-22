@@ -27,7 +27,7 @@
 #define WNCK_TASKLIST_H
 
 #include <gtk/gtk.h>
-#include <libwnck/screen.h>
+#include <libwnck/libwnck.h>
 
 G_BEGIN_DECLS
 

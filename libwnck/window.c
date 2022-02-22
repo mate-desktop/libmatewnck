@@ -679,9 +679,9 @@ wnck_window_get_icon_name (WnckWindow *window)
 }
 
 char *
-_wnck_window_get_name_for_display (WnckWindow *window,
-                                   gboolean    use_icon_name,
-                                   gboolean    use_state_decorations)
+wnck_window_get_name_for_display (WnckWindow *window,
+                                  gboolean    use_icon_name,
+                                  gboolean    use_state_decorations)
 {
   const char *name;
 
@@ -1082,7 +1082,7 @@ transient_needs_attention (WnckWindow *window)
 }
 
 time_t
-_wnck_window_or_transient_get_needs_attention_time (WnckWindow *window)
+wnck_window_or_transient_get_needs_attention_time (WnckWindow *window)
 {
   g_return_val_if_fail (WNCK_IS_WINDOW (window), 0);
 
@@ -1154,7 +1154,7 @@ wnck_window_is_maximized_vertically   (WnckWindow *window)
 }
 
 const char*
-_wnck_window_get_startup_id (WnckWindow *window)
+wnck_window_get_startup_id (WnckWindow *window)
 {
   g_return_val_if_fail (WNCK_IS_WINDOW (window), NULL);
 

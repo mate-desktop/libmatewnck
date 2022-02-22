@@ -27,7 +27,7 @@
 #include <X11/Xatom.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
-#include <libwnck/screen.h>
+#include <libwnck/libwnck.h>
 
 G_BEGIN_DECLS
 

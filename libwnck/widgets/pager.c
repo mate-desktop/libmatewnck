@@ -28,8 +28,6 @@
 #include <glib/gi18n-lib.h>
 
 #include "pager.h"
-#include "workspace.h"
-#include "window.h"
 #include "xutils.h"
 #include "pager-accessible-factory.h"
 #include "workspace-accessible-factory.h"
@@ -58,6 +56,7 @@
  */
 
 #define N_SCREEN_CONNECTIONS 11
+#define WNCK_NO_MANAGER_TOKEN 0
 
 struct _WnckPagerPrivate
 {
@@ -300,14 +299,14 @@ _wnck_pager_set_screen (WnckPager *pager)
 
   if (!wnck_pager_set_layout_hint (pager))
     {
-      _WnckLayoutOrientation orientation;
+      WnckLayoutOrientation orientation;
 
       /* we couldn't set the layout on the screen. This means someone else owns
        * it. Let's at least show the correct layout. */
-      _wnck_screen_get_workspace_layout (pager->priv->screen,
-                                         &orientation,
-                                         &pager->priv->n_rows,
-                                         NULL, NULL);
+      wnck_screen_get_workspace_layout (pager->priv->screen,
+                                        &orientation,
+                                        &pager->priv->n_rows,
+                                        NULL, NULL);
 
       /* test in this order to default to horizontal in case there was in issue
        * when fetching the layout */
@@ -2857,9 +2856,13 @@ wnck_pager_get_background (WnckPager *pager,
 
   if (p != None)
     {
+      GdkDisplay *display;
       Screen *xscreen;
 
-      xscreen = WNCK_SCREEN_XSCREEN (pager->priv->screen);
+      //xscreen = WNCK_SCREEN_XSCREEN (pager->priv->screen);
+
+      display = gdk_display_get_default ();
+      xscreen = gdk_x11_screen_get_xscreen (gdk_display_get_default_screen (display));
       pix = _wnck_gdk_pixbuf_get_from_pixmap (xscreen, p);
     }
 

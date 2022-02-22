@@ -3,6 +3,8 @@
 #include <libwnck/libwnck.h>
 #include <gtk/gtk.h>
 
+#include "pager.h"
+
 static int n_rows = 1;
 static gboolean only_current = FALSE;
 static gboolean rtl = FALSE;

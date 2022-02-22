@@ -26,7 +26,7 @@
 #ifndef WNCK_WINDOW_ACTION_MENU_H
 #define WNCK_WINDOW_ACTION_MENU_H
 
-#include <libwnck/window.h>
+#include <libwnck/libwnck.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS

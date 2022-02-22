@@ -19,7 +19,7 @@
 #define WNCK_IMAGE_MENU_ITEM_PRIVATE_H
 
 #include <gtk/gtk.h>
-#include "window.h"
+#include <libwnck/libwnck.h>
 
 G_BEGIN_DECLS
 

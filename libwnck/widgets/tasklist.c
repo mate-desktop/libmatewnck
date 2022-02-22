@@ -28,13 +28,14 @@
 #include <stdio.h>
 #include <glib/gi18n-lib.h>
 #include "tasklist.h"
-#include "window.h"
-#include "class-group.h"
 #include "window-action-menu.h"
 #include "wnck-image-menu-item-private.h"
-#include "workspace.h"
 #include "xutils.h"
 #include "private.h"
+
+#ifdef HAVE_STARTUP_NOTIFICATION
+#include <libsn/sn.h>
+#endif
 
 /**
  * SECTION:tasklist
@@ -92,7 +93,7 @@ typedef struct _WnckTaskClass   WnckTaskClass;
 
 #define DEFAULT_GROUPING_LIMIT 80
 
-#define MINI_ICON_SIZE _wnck_get_default_mini_icon_size ()
+#define MINI_ICON_SIZE 16 /*_wnck_get_default_mini_icon_size ()*/
 #define TASKLIST_BUTTON_PADDING 4
 #define TASKLIST_TEXT_MAX_WIDTH 25 /* maximum width in characters */
 
@@ -227,6 +228,10 @@ struct _WnckTasklistPrivate
   WnckLoadIconFunction icon_loader;
   void *icon_loader_data;
   GDestroyNotify free_icon_loader_data;
+
+#ifdef HAVE_STARTUP_NOTIFICATION
+  SnDisplay *sn_display;
+#endif
 
 #ifdef HAVE_STARTUP_NOTIFICATION
   SnMonitorContext *sn_context;
@@ -2137,21 +2142,45 @@ foreach_tasklist (WnckTasklist *tasklist,
   wnck_tasklist_update_lists (tasklist);
 }
 
+#ifdef HAVE_STARTUP_NOTIFICATION
+static void
+sn_error_trap_push (SnDisplay *display,
+                    Display   *xdisplay)
+{
+  _wnck_error_trap_push (xdisplay);
+}
+
+static void
+sn_error_trap_pop (SnDisplay *display,
+                   Display   *xdisplay)
+{
+  _wnck_error_trap_pop (xdisplay);
+}
+#endif /* HAVE_STARTUP_NOTIFICATION */
+
 static void
 wnck_tasklist_realize (GtkWidget *widget)
 {
   WnckTasklist *tasklist;
   GdkScreen *gdkscreen;
+  GdkDisplay *gdkdisplay;
 
   tasklist = WNCK_TASKLIST (widget);
 
   gdkscreen = gtk_widget_get_screen (widget);
+  gdkdisplay = gdk_screen_get_display (gdkscreen);
   tasklist->priv->screen = wnck_screen_get (gdk_x11_screen_get_screen_number (gdkscreen));
   g_assert (tasklist->priv->screen != NULL);
 
 #ifdef HAVE_STARTUP_NOTIFICATION
+  tasklist->priv->sn_display = sn_display_new (gdk_x11_display_get_xdisplay (gdkdisplay),
+                                               sn_error_trap_push,
+                                               sn_error_trap_pop);
+#endif
+
+#ifdef HAVE_STARTUP_NOTIFICATION
   tasklist->priv->sn_context =
-    sn_monitor_context_new (_wnck_screen_get_sn_display (tasklist->priv->screen),
+    sn_monitor_context_new (tasklist->priv->sn_display,
                             wnck_screen_get_number (tasklist->priv->screen),
                             wnck_tasklist_sn_event,
                             tasklist,
@@ -2181,6 +2210,11 @@ wnck_tasklist_unrealize (GtkWidget *widget)
 #ifdef HAVE_STARTUP_NOTIFICATION
   sn_monitor_context_unref (tasklist->priv->sn_context);
   tasklist->priv->sn_context = NULL;
+#endif
+
+#ifdef HAVE_STARTUP_NOTIFICATION
+  sn_display_unref (tasklist->priv->sn_display);
+  tasklist->priv->sn_display = NULL;
 #endif
 
   (* GTK_WIDGET_CLASS (wnck_tasklist_parent_class)->unrealize) (widget);
@@ -3485,8 +3519,8 @@ wnck_task_popup_menu (WnckTask *task,
 			       0);
     }
 
-  gtk_menu_set_screen (GTK_MENU (menu),
-		       _wnck_screen_get_gdk_screen (task->tasklist->priv->screen));
+  /*gtk_menu_set_screen (GTK_MENU (menu),
+		       _wnck_screen_get_gdk_screen (task->tasklist->priv->screen));*/
 
   gtk_widget_show (menu);
   gtk_menu_popup_at_widget (GTK_MENU (menu), task->button,
@@ -3550,8 +3584,8 @@ wnck_task_get_text (WnckTask *task,
 				g_list_length (task->windows));
 
     case WNCK_TASK_WINDOW:
-      return _wnck_window_get_name_for_display (task->window,
-                                                icon_text, include_state);
+      return wnck_window_get_name_for_display (task->window,
+                                               icon_text, include_state);
       break;
 
     case WNCK_TASK_STARTUP_SEQUENCE:
@@ -3743,7 +3777,7 @@ wnck_task_get_needs_attention (WnckTask *task)
 	  if (wnck_window_or_transient_needs_attention (win_task->window))
 	    {
 	      needs_attention = TRUE;
-              task->start_needs_attention = MAX (task->start_needs_attention, _wnck_window_or_transient_get_needs_attention_time (win_task->window));
+              task->start_needs_attention = MAX (task->start_needs_attention, wnck_window_or_transient_get_needs_attention_time (win_task->window));
 	      break;
 	    }
 
@@ -3754,7 +3788,7 @@ wnck_task_get_needs_attention (WnckTask *task)
     case WNCK_TASK_WINDOW:
       needs_attention =
 	wnck_window_or_transient_needs_attention (task->window);
-      task->start_needs_attention = _wnck_window_or_transient_get_needs_attention_time (task->window);
+      task->start_needs_attention = wnck_window_or_transient_get_needs_attention_time (task->window);
       break;
 
     case WNCK_TASK_STARTUP_SEQUENCE:
@@ -4146,8 +4180,8 @@ wnck_task_button_press_event (GtkWidget	      *widget,
           g_object_add_weak_pointer (G_OBJECT (task->action_menu),
                                      (void**) &task->action_menu);
 
-          gtk_menu_set_screen (GTK_MENU (task->action_menu),
-                               _wnck_screen_get_gdk_screen (task->tasklist->priv->screen));
+          /*gtk_menu_set_screen (GTK_MENU (task->action_menu),
+                               _wnck_screen_get_gdk_screen (task->tasklist->priv->screen));*/
 
           gtk_widget_show (task->action_menu);
           gtk_menu_popup_at_widget (GTK_MENU (task->action_menu), task->button,
@@ -4605,7 +4639,7 @@ remove_startup_sequences_for_window (WnckTasklist *tasklist,
   const char *win_id;
   GList *tmp;
 
-  win_id = _wnck_window_get_startup_id (window);
+  win_id = wnck_window_get_startup_id (window);
   if (win_id == NULL)
     return;
 

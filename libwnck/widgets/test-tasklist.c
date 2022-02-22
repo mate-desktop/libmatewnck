@@ -3,6 +3,8 @@
 #include <libwnck/libwnck.h>
 #include <gtk/gtk.h>
 
+#include "tasklist.h"
+
 static gboolean display_all = FALSE;
 static gboolean never_group = FALSE;
 static gboolean always_group = FALSE;

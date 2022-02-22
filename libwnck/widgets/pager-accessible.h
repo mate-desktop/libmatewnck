@@ -21,8 +21,6 @@
 
 #include <gtk/gtk.h>
 #include <atk/atk.h>
-#include "pager.h"
-#include "screen.h"
 
 G_BEGIN_DECLS
 

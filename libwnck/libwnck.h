@@ -29,11 +29,6 @@
 #include <libwnck/workspace.h>
 #include <libwnck/screen.h>
 
-#include <libwnck/pager.h>
-#include <libwnck/tasklist.h>
-#include <libwnck/selector.h>
-
-#include <libwnck/window-action-menu.h>
 #include <libwnck/util.h>
 
 #include <libwnck/version.h>

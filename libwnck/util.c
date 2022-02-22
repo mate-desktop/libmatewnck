@@ -29,6 +29,10 @@
 #include <gdk/gdkx.h>
 #include <string.h>
 
+#ifdef HAVE_STARTUP_NOTIFICATION
+#include <libsn/sn.h>
+#endif
+
 /**
  * SECTION:resource
  * @short_description: reading resource usage of X clients.
@@ -235,32 +239,6 @@ _wnck_get_default_mini_icon_size (void)
   return _wnck_handle_get_default_mini_icon_size (_wnck_get_handle ());
 }
 
-/**
- * _make_gtk_label_bold:
- * @label: The label.
- *
- * Switches the font of label to a bold equivalent.
- **/
-void
-_make_gtk_label_bold (GtkLabel *label)
-{
-  GtkStyleContext *context;
-
-  _wnck_ensure_fallback_style ();
-
-  context = gtk_widget_get_style_context (GTK_WIDGET (label));
-  gtk_style_context_add_class (context, "wnck-needs-attention");
-}
-
-void
-_make_gtk_label_normal (GtkLabel *label)
-{
-  GtkStyleContext *context;
-
-  context = gtk_widget_get_style_context (GTK_WIDGET (label));
-  gtk_style_context_remove_class (context, "wnck-needs-attention");
-}
-
 #ifdef HAVE_STARTUP_NOTIFICATION
 static gboolean
 _wnck_util_sn_utf8_validator (const char *str,
@@ -327,27 +305,4 @@ wnck_shutdown (void)
   g_clear_object (&wnck_handle);
 
   _wnck_read_resources_shutdown_all ();
-}
-
-void
-_wnck_ensure_fallback_style (void)
-{
-  static gboolean css_loaded = FALSE;
-  GtkCssProvider *provider;
-  guint priority;
-
-  if (css_loaded)
-    return;
-
-  provider = gtk_css_provider_new ();
-  gtk_css_provider_load_from_resource (provider, "/org/gnome/libwnck/wnck.css");
-
-  priority = GTK_STYLE_PROVIDER_PRIORITY_FALLBACK;
-  gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
-                                             GTK_STYLE_PROVIDER (provider),
-                                             priority);
-
-  g_object_unref (provider);
-
-  css_loaded = TRUE;
 }

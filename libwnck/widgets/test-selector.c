@@ -3,6 +3,8 @@
 #include <libwnck/libwnck.h>
 #include <gtk/gtk.h>
 
+#include "selector.h"
+
 static gboolean skip_tasklist = FALSE;
 
 static GOptionEntry entries[] = {

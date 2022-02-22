@@ -28,16 +28,10 @@
 #include "workspace.h"
 #include "application.h"
 #include "xutils.h"
-#include "pager.h"
 #include "util.h"
 #include "wnck-handle-private.h"
-#ifdef HAVE_STARTUP_NOTIFICATION
-#include <libsn/sn.h>
-#endif
 
 G_BEGIN_DECLS
-
-#define WNCK_ACTIVATE_TIMEOUT 1
 
 WnckHandle *_wnck_get_handle (void);
 
@@ -62,13 +56,12 @@ void        _wnck_window_destroy (WnckWindow *window);
 
 void        _wnck_window_load_icons (WnckWindow *window);
 
-char*       _wnck_window_get_name_for_display (WnckWindow *window,
-                                               gboolean    use_icon_name,
-                                               gboolean    use_state_decorations);
-const char* _wnck_window_get_startup_id (WnckWindow *window);
+char*       wnck_window_get_name_for_display (WnckWindow *window,
+                                              gboolean    use_icon_name,
+                                              gboolean    use_state_decorations);
+const char* wnck_window_get_startup_id (WnckWindow *window);
 
 time_t      _wnck_window_get_needs_attention_time (WnckWindow *window);
-time_t      _wnck_window_or_transient_get_needs_attention_time (WnckWindow *window);
 
 WnckWorkspace* _wnck_workspace_create  (int            number, 
                                         WnckScreen    *screen);
@@ -79,11 +72,6 @@ void _wnck_window_set_application    (WnckWindow      *window,
 
 void _wnck_window_set_class_group (WnckWindow     *window,
 				   WnckClassGroup *class_group);
-
-/* this one is in pager.c since it needs code from there to draw the icon */
-void _wnck_window_set_as_drag_icon (WnckWindow     *window,
-                                    GdkDragContext *context,
-                                    GtkWidget      *drag_source);
 
 void _wnck_application_add_window    (WnckApplication *app,
                                       WnckWindow      *window);
@@ -127,31 +115,7 @@ Window     _wnck_screen_get_xroot      (WnckScreen *screen);
 Screen    *_wnck_screen_get_xscreen    (WnckScreen *screen);
 GdkScreen *_wnck_screen_get_gdk_screen (WnckScreen *screen);
 
-#ifdef HAVE_STARTUP_NOTIFICATION
-SnDisplay* _wnck_screen_get_sn_display (WnckScreen *screen);
-#endif
-
 WnckHandle    *_wnck_screen_get_handle          (WnckScreen    *screen);
-
-void           _wnck_pager_activate_workspace   (WnckWorkspace *wspace,
-                                                 guint32        timestamp);
-int            _wnck_pager_get_n_workspaces     (WnckPager     *pager);
-const char*    _wnck_pager_get_workspace_name   (WnckPager     *pager,
-                                                 int            i);
-WnckWorkspace* _wnck_pager_get_active_workspace (WnckPager     *pager);
-WnckWorkspace* _wnck_pager_get_workspace        (WnckPager     *pager,
-                                                 int            i);
-void           _wnck_pager_get_workspace_rect   (WnckPager     *pager,
-                                                 int            i,
-                                                 GdkRectangle  *rect);
-
-void           _make_gtk_label_bold   (GtkLabel *label);
-void           _make_gtk_label_normal (GtkLabel *label);
-
-void           _wnck_selector_set_window_icon   (GtkWidget     *image,
-                                                 WnckWindow    *window);
-
-void           _wnck_ensure_fallback_style      (void);
 
 G_END_DECLS
 

@@ -28,11 +28,11 @@
 #include <config.h>
 
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 
 #include <glib/gi18n-lib.h>
 #include "selector.h"
-#include "libwnck.h"
-#include "screen.h"
+#include <libwnck/libwnck.h>
 #include "wnck-image-menu-item-private.h"
 #include "private.h"
 
@@ -356,7 +356,7 @@ wnck_selector_window_name_changed (WnckWindow *window,
   item = g_hash_table_lookup (selector->priv->window_hash, window);
   if (item != NULL)
     {
-      window_name = _wnck_window_get_name_for_display (window, FALSE, TRUE);
+      window_name = wnck_window_get_name_for_display (window, FALSE, TRUE);
       gtk_menu_item_set_label (GTK_MENU_ITEM (item), window_name);
       g_free (window_name);
     }
@@ -410,7 +410,7 @@ wnck_selector_window_state_changed (WnckWindow *window,
   if (changed_mask &
       (WNCK_WINDOW_STATE_MINIMIZED | WNCK_WINDOW_STATE_SHADED))
     {
-      window_name = _wnck_window_get_name_for_display (window, FALSE, TRUE);
+      window_name = wnck_window_get_name_for_display (window, FALSE, TRUE);
       gtk_menu_item_set_label (GTK_MENU_ITEM (item), window_name);
       g_free (window_name);
     }
@@ -627,7 +627,7 @@ wnck_selector_create_window (WnckSelector *selector, WnckWindow *window)
   GtkWidget *item;
   char *name;
 
-  name = _wnck_window_get_name_for_display (window, FALSE, TRUE);
+  name = wnck_window_get_name_for_display (window, FALSE, TRUE);
 
   item = wnck_selector_item_new (selector, name, window);
   g_free (name);

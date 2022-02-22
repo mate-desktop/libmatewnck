@@ -28,6 +28,10 @@
 #include "wnck-enum-types.h"
 #include "xutils.h"
 
+#ifdef HAVE_STARTUP_NOTIFICATION
+#include <libsn/sn.h>
+#endif
+
 #define WNCK_TYPE_HANDLE (wnck_handle_get_type ())
 G_DECLARE_FINAL_TYPE (WnckHandle, wnck_handle, WNCK, HANDLE, GObject)
 
@@ -122,6 +126,7 @@ filter_func (GdkXEvent *gdkxevent,
 
     case ClientMessage:
 #ifdef HAVE_STARTUP_NOTIFICATION
+#if 0
       /* We're cheating as officially libsn requires
        * us to send all events through sn_display_process_event
        */
@@ -140,6 +145,7 @@ filter_func (GdkXEvent *gdkxevent,
 
           ++i;
         }
+#endif
 #endif /* HAVE_STARTUP_NOTIFICATION */
       break;
 

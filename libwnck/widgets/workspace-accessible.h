@@ -21,8 +21,6 @@
 
 #include <gtk/gtk.h>
 #include <atk/atk.h>
-#include "workspace.h"
-#include "pager-accessible.h"
 
 G_BEGIN_DECLS
 
