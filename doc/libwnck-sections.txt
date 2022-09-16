@@ -271,7 +271,6 @@ WnckSelectorClass
 <FILE>tasklist</FILE>
 <TITLE>WnckTasklist</TITLE>
 WnckTasklist
-wnck_tasklist_new
 WnckTasklistGroupingType
 wnck_tasklist_set_grouping
 wnck_tasklist_set_grouping_limit
@@ -280,7 +279,6 @@ wnck_tasklist_set_switch_workspace_on_unminimize
 wnck_tasklist_set_button_relief
 WnckLoadIconFunction
 wnck_tasklist_set_icon_loader
-wnck_tasklist_get_size_hint_list
 <SUBSECTION Private>
 WnckTasklistPrivate
 wnck_tasklist_get_type
