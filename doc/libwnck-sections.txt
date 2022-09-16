@@ -256,7 +256,6 @@ WnckPagerClass
 <FILE>selector</FILE>
 <TITLE>WnckSelector</TITLE>
 WnckSelector
-wnck_selector_new
 <SUBSECTION Private>
 WnckSelectorPrivate
 wnck_selector_get_type
