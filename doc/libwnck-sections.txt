@@ -231,7 +231,6 @@ WnckScreenClass
 <FILE>pager</FILE>
 <TITLE>WnckPager</TITLE>
 WnckPager
-wnck_pager_new
 wnck_pager_set_orientation
 wnck_pager_set_n_rows
 WnckPagerDisplayMode
