@@ -104,9 +104,7 @@ WnckWindowClass
 <FILE>class-group</FILE>
 <TITLE>WnckClassGroup</TITLE>
 WnckClassGroup
-wnck_class_group_get
 wnck_class_group_get_id
-wnck_class_group_get_res_class
 wnck_class_group_get_name
 wnck_class_group_get_icon
 wnck_class_group_get_mini_icon
