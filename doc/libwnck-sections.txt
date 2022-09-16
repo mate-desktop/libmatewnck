@@ -5,7 +5,6 @@
 <FILE>window</FILE>
 <TITLE>WnckWindow</TITLE>
 WnckWindow
-wnck_window_get
 wnck_window_get_screen
 wnck_window_has_name
 wnck_window_get_name
