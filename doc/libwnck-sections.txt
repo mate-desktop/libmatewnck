@@ -126,7 +126,6 @@ WnckClassGroupClass
 <FILE>application</FILE>
 <TITLE>WnckApplication</TITLE>
 WnckApplication
-wnck_application_get
 wnck_application_get_xid
 wnck_application_get_name
 wnck_application_get_icon_name
