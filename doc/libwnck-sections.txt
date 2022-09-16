@@ -187,9 +187,6 @@ WnckWorkspaceClass
 <FILE>screen</FILE>
 <TITLE>WnckScreen</TITLE>
 WnckScreen
-wnck_screen_get_default
-wnck_screen_get
-wnck_screen_get_for_root
 wnck_screen_get_number
 wnck_screen_get_width
 wnck_screen_get_height
@@ -207,9 +204,6 @@ wnck_screen_get_workspace_count
 wnck_screen_change_workspace_count
 wnck_screen_try_set_workspace_layout
 wnck_screen_release_workspace_layout
-WnckWorkspaceLayout
-wnck_screen_calc_workspace_layout
-wnck_screen_free_workspace_layout
 wnck_screen_move_viewport
 wnck_screen_get_background_pixmap
 wnck_screen_get_showing_desktop
