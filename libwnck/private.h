@@ -37,6 +37,8 @@ G_BEGIN_DECLS
 
 WnckHandle *_wnck_get_handle (void);
 
+int _wnck_get_window_scaling_factor (void);
+
 void _wnck_application_process_property_notify (WnckApplication *app,
                                                 XEvent          *xevent);
 void _wnck_window_process_property_notify (WnckWindow *window,

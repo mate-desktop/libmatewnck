@@ -165,6 +165,27 @@ _wnck_get_handle (void)
 }
 
 /**
+ * _wnck_get_window_scaling_factor:
+ *
+ * Retrieves the internal scale factor that maps from window coordinates to the
+ * actual device pixels. On traditional systems this is 1, on high density
+ * outputs, it can be a higher value (typically 2).
+ */
+int
+_wnck_get_window_scaling_factor (void)
+{
+  GdkScreen *screen;
+  GValue value = G_VALUE_INIT;
+
+  g_value_init (&value, G_TYPE_INT);
+
+  screen = gdk_screen_get_default ();
+  if (gdk_screen_get_setting (screen, "gdk-window-scaling-factor", &value))
+    return g_value_get_int (&value);
+  return 1;
+}
+
+/**
  * wnck_set_default_icon_size:
  * @size: the default size for windows and application standard icons.
  *
@@ -177,6 +198,12 @@ void
 wnck_set_default_icon_size (gsize size)
 {
   wnck_handle_set_default_icon_size (_wnck_get_handle(), size);
+}
+
+gsize
+_wnck_get_default_icon_size (void)
+{
+  return _wnck_handle_get_default_icon_size (_wnck_get_handle ());
 }
 
 /**
@@ -192,6 +219,12 @@ void
 wnck_set_default_mini_icon_size (gsize size)
 {
   wnck_handle_set_default_mini_icon_size (_wnck_get_handle (), size);
+}
+
+gsize
+_wnck_get_default_mini_icon_size (void)
+{
+  return _wnck_handle_get_default_mini_icon_size (_wnck_get_handle ());
 }
 
 /**

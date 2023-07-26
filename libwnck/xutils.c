@@ -1408,7 +1408,8 @@ _wnck_select_input (Screen *screen,
 
 cairo_surface_t *
 _wnck_cairo_surface_get_from_pixmap (Screen *screen,
-                                     Pixmap  xpixmap)
+                                     Pixmap  xpixmap,
+                                     int     scaling_factor)
 {
   cairo_surface_t *surface;
   Display *display;
@@ -1425,6 +1426,9 @@ _wnck_cairo_surface_get_from_pixmap (Screen *screen,
   if (!XGetGeometry (display, xpixmap, &root_return,
                      &x_ret, &y_ret, &w_ret, &h_ret, &bw_ret, &depth_ret))
     goto TRAP_POP;
+
+  w_ret *= scaling_factor;
+  h_ret *= scaling_factor;
 
   if (depth_ret == 1)
     {
@@ -1482,7 +1486,7 @@ _wnck_gdk_pixbuf_get_from_pixmap (Screen *screen,
   cairo_surface_t *surface;
   GdkPixbuf *retval;
 
-  surface = _wnck_cairo_surface_get_from_pixmap (screen, xpixmap);
+  surface = _wnck_cairo_surface_get_from_pixmap (screen, xpixmap, 1);
 
   if (surface == NULL)
     return NULL;
@@ -1497,36 +1501,30 @@ _wnck_gdk_pixbuf_get_from_pixmap (Screen *screen,
   return retval;
 }
 
-static GdkPixbuf*
+static cairo_surface_t*
 default_icon_at_size (int size)
 {
-  GdkPixbuf *base;
+  GdkPixbuf *pixbuf;
+  cairo_surface_t *surface;
 
-  base = gdk_pixbuf_new_from_resource ("/org/gnome/libwnck/default_icon.png", NULL);
+  pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/org/gnome/libwnck/default_icon.png",
+                                                  size, size,
+                                                  TRUE, NULL);
 
-  g_assert (base);
+  g_assert (pixbuf);
 
-  if (gdk_pixbuf_get_width (base) == size &&
-      gdk_pixbuf_get_height (base) == size)
-    {
-      return base;
-    }
-  else
-    {
-      GdkPixbuf *scaled;
+  surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, 0, NULL);
 
-      scaled = gdk_pixbuf_scale_simple (base, size, size, GDK_INTERP_BILINEAR);
-      g_object_unref (G_OBJECT (base));
+  g_clear_object (&pixbuf);
 
-      return scaled;
-    }
+  return surface;
 }
 
 void
-_wnck_get_fallback_icons (GdkPixbuf **iconp,
-                          int         ideal_size,
-                          GdkPixbuf **mini_iconp,
-                          int         ideal_mini_size)
+_wnck_get_fallback_icons (cairo_surface_t **iconp,
+                          int               ideal_size,
+                          cairo_surface_t **mini_iconp,
+                          int               ideal_mini_size)
 {
   if (iconp)
     *iconp = default_icon_at_size (ideal_size);

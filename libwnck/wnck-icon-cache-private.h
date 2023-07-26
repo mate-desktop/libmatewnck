@@ -38,13 +38,14 @@ void           _wnck_icon_cache_set_want_fallback    (WnckIconCache  *icon_cache
                                                       gboolean        setting);
 gboolean       _wnck_icon_cache_get_is_fallback      (WnckIconCache  *icon_cache);
 
-gboolean       _wnck_read_icons                      (WnckScreen     *screen,
-                                                      Window          xwindow,
-                                                      WnckIconCache  *icon_cache,
-                                                      GdkPixbuf     **iconp,
-                                                      int             ideal_size,
-                                                      GdkPixbuf     **mini_iconp,
-                                                      int             ideal_mini_size);
+gboolean       _wnck_read_icons                      (WnckScreen       *screen,
+                                                      Window            xwindow,
+                                                      WnckIconCache    *icon_cache,
+                                                      cairo_surface_t **iconp,
+                                                      int               ideal_size,
+                                                      cairo_surface_t **mini_iconp,
+                                                      int               ideal_mini_size,
+                                                      int               scaling_factor);
 
 G_END_DECLS
 

@@ -146,6 +146,32 @@ void wnck_tasklist_set_icon_loader (WnckTasklist         *tasklist,
                                     void                 *data,
                                     GDestroyNotify        free_data_func);
 
+/**
+ * WnckLoadSurfaceFunction:
+ * @icon_name: an icon name as in the Icon field in a .desktop file for the
+ * icon to load.
+ * @size: the desired icon size.
+ * @flags: not defined to do anything yet.
+ * @data: data passed to the function, set when the #WnckLoadSurfaceFunction has
+ * been set for the #WnckTasklist.
+ *
+ * Specifies the type of function passed to wnck_tasklist_set_icon_loader().
+ *
+ * Returns: it should return a <classname>cairo_surface_t</classname> of @icon_name
+ * at size @size, or %NULL if no icon for @icon_name at size @size could be
+ * loaded.
+ *
+ */
+typedef cairo_surface_t* (*WnckLoadSurfaceFunction) (const char   *icon_name,
+                                                     int           size,
+                                                     unsigned int  flags,
+                                                     void         *data);
+
+void wnck_tasklist_set_surface_loader (WnckTasklist           *tasklist,
+                                       WnckLoadSurfaceFunction load_surface_func,
+                                       void                   *data,
+                                       GDestroyNotify          free_data_func);
+
 G_END_DECLS
 
 #endif /* WNCK_TASKLIST_H */
